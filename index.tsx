@@ -113,6 +113,32 @@ const App = () => {
     const [wordToTranslate, setWordToTranslate] = useState<string | null>(null);
     const [targetTranslationLanguage, setTargetTranslationLanguage] = useState('');
 
+    const getLanguageCodeFromAI = async (userInputLanguage: string): Promise<string> => {
+        const supportedCodes = [
+            'ar-EG', 'de-DE', 'en-US', 'es-US', 'fr-FR', 'hi-IN', 'id-ID',
+            'it-IT', 'ja-JP', 'ko-KR', 'pt-BR', 'ru-RU', 'nl-NL', 'pl-PL',
+            'th-TH', 'tr-TR', 'vi-VN', 'ro-RO', 'uk-UA', 'bn-BD', 'en-IN',
+            'mr-IN', 'ta-IN', 'te-IN'
+        ];
+
+        const prompt = `From the user input "${userInputLanguage}", identify the correct BCP-47 code from this list: ${JSON.stringify(supportedCodes)}. Your response must be ONLY the BCP-47 code from the list. If you cannot determine a matching code, respond with "en-US".`;
+
+        try {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+            });
+            const potentialCode = response.text.trim();
+            // Validate that the AI returned a valid code from our list
+            if (supportedCodes.includes(potentialCode)) {
+                return potentialCode;
+            }
+            return 'en-US'; // Default if the AI returns an unsupported code
+        } catch (error) {
+            console.error("Error determining language code from AI:", error);
+            return 'en-US'; // Default on API error
+        }
+    };
 
     // --- Effects ---
     // Cleanup audio context on unmount
@@ -297,6 +323,8 @@ const App = () => {
             if (audioSourceRef.current) {
                 audioSourceRef.current.stop();
             }
+
+            const languageCode = await getLanguageCodeFromAI(language);
 
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash-preview-tts",
