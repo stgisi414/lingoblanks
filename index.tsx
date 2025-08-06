@@ -327,8 +327,8 @@ const App = () => {
         try {
             if (audioSourceRef.current) {
                 audioSourceRef.current.stop();
-            }=
-                
+            }
+
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash-preview-tts",
                 contents: [{ parts: [{ text: textToListen }] }],
