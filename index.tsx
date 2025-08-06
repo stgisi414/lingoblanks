@@ -256,6 +256,13 @@ const App = () => {
         }
     };
 
+    const handleWordBankHover = (word: string) => {
+        if (lesson?.languageCode.startsWith('en')) {
+            setWordToTranslate(word);
+            setShowLanguageModal(true);
+        }
+    };
+
     const handleTranslateEnglishWord = async () => {
         if (!wordToTranslate || !targetTranslationLanguage) return;
 
@@ -499,12 +506,13 @@ const App = () => {
                                     <div className="word-bank-words">
                                         {shuffledWords.map(word => (
                                            <button
-                                               key={word}
-                                               className="word-bank-word"
-                                               onMouseEnter={() => handleTranslateEnglishWord(word)}
-                                               onClick={() => handleListen(word)}
-                                               disabled={isAudioLoading || isAudioPlaying}
-                                           >{word}</button>
+                                                key={word}
+                                                className="word-bank-word"
+                                                title={translations[word] || ''}
+                                                onMouseEnter={() => handleWordBankHover(word)}
+                                                onClick={() => handleListen(word)}
+                                                disabled={isAudioLoading || isAudioPlaying}
+                                            >{word}</button>
                                         ))}    
                                     </div>
                                 </div>
