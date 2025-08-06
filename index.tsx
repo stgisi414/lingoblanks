@@ -247,6 +247,11 @@ const App = () => {
             if (!lessonData.targetWords || lessonData.targetWords.length === 0) {
               throw new Error("API returned invalid lesson data (missing target words).");
             }
+
+            // Get the validated TTS code based on the user's input language.
+            const ttsLanguageCode = await getLanguageCodeFromAI(language);
+            // Overwrite the language code from the lesson plan with our validated one.
+            lessonData.languageCode = ttsLanguageCode;
             
             setLesson(lessonData);
             setUserAnswers(new Array(lessonData.targetWords.length).fill(''));
@@ -322,10 +327,8 @@ const App = () => {
         try {
             if (audioSourceRef.current) {
                 audioSourceRef.current.stop();
-            }
-
-            const languageCode = await getLanguageCodeFromAI(language);
-
+            }=
+                
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash-preview-tts",
                 contents: [{ parts: [{ text: textToListen }] }],
