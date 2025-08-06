@@ -193,7 +193,8 @@ const App = () => {
             setShuffledWords(shuffleArray(lessonData.targetWords));
 
             // 2. Generate Header Image
-                const lessonPrompt = `Create a language lesson for a beginner learning ${language} on the topic of "${currentTopic}". The difficulty is ${difficulty}. ${difficultyMap[difficulty]} Provide a title, the IETF language code for ${language}, a short article (3-4 sentences) with exactly 5 words replaced by "{{word}}" for a fill-in-the-blank exercise, a JSON array of those 5 exact string words for the "targetWords" field (the words should be the actual words, not placeholders), and a suggestion for a follow-up lesson topic.`;            const imageResponse = await ai.models.generateImages({
+            const imagePrompt = `A vibrant, minimalist, educational illustration for a language lesson titled "${lessonData.title}", without any text, labels, or written language.`;
+            const imageResponse = await ai.models.generateImages({
                 model: 'imagen-3.0-generate-002',
                 prompt: imagePrompt,
                 config: {
