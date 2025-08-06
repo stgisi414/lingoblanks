@@ -229,15 +229,12 @@ const App = () => {
             }
 
             const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash-preview-tts", // FIX: Use the correct TTS model
+                model: "gemini-2.5-flash-preview-tts",
                 contents: [{ parts: [{ text: textToListen }] }],
                 config: {
                     responseModalities: ['AUDIO'],
                     speechConfig: {
                         languageCode: lesson.languageCode,
-                        voiceConfig: {
-                            prebuiltVoiceConfig: { voiceName: 'Kore' },
-                        },
                     },
                 },
             });
