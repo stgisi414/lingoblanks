@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LingoBlanks - Language Learning</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.1",
+    "react-dom/client": "https://esm.sh/react-dom@^19.1.1/client",
+    "@google/genai": "https://esm.sh/@google/genai@^1.12.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "react/": "https://esm.sh/react@^19.1.1/"
+  }
+}
+</script>
+<style>
+    :root {
+        --primary-color: #4f46e5;
+        --primary-hover: #4338ca;
+        --secondary-color: #f3f4f6;
+        --text-color: #1f2937;
+        --text-light: #6b7280;
+        --border-color: #d1d5db;
+        --error-color: #ef4444;
+        --error-text-dark: #991b1b;
+        --error-bg-light: #fef2f2;
+        --success-color: #22c55e;
+        --success-text-dark: #166534;
+        --success-bg-light: #f0fdf4;
+        --bg-color: #ffffff;
+        --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --font-family: 'Poppins', sans-serif;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: var(--font-family);
+        background-color: var(--secondary-color);
+        color: var(--text-color);
+        line-height: 1.6;
+    }
+
+    #root {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem;
+        min-height: 100vh;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 800px;
+        background-color: var(--bg-color);
+        border-radius: 12px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+    }
+
+    header {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 1.5rem 2rem;
+        text-align: center;
+    }
+
+    header h1 {
+        font-weight: 700;
+        font-size: 2.25rem;
+    }
+
+    .controls {
+        padding: 2rem;
+        border-bottom: 1px solid var(--border-color);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .control-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .control-group label {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--text-light);
+    }
+
+    .control-group input, .control-group select {
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: var(--font-family);
+    }
+
+    .control-group input:focus, .control-group select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+    }
+
+    .main-cta {
+        padding: 2rem;
+        text-align: center;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+    }
+
+    button:hover:not(:disabled) {
+        background-color: var(--primary-hover);
+        transform: translateY(-1px);
+    }
+
+    button:disabled {
+        background-color: #9ca3af;
+        cursor: not-allowed;
+    }
+    
+    .status-message {
+        text-align: center;
+        padding: 2rem;
+        font-size: 1.2rem;
+        color: var(--text-light);
+    }
+    
+    .error-message {
+       text-align: center;
+       padding: 1rem;
+       margin: 1rem 2rem 0;
+       background-color: var(--error-bg-light);
+       color: var(--error-text-dark);
+       border: 1px solid var(--error-color);
+       border-radius: 8px;
+    }
+
+    .lesson-content {
+       padding-top: 2rem;
+    }
+
+    .lesson-header-image {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+    }
+
+    .lesson-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .listen-controls {
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .article {
+        font-size: 1.2rem;
+        line-height: 2.2;
+        margin-bottom: 2rem;
+        background-color: #f9fafb;
+        padding: 1.5rem;
+        border-radius: 8px;
+    }
+
+    .article-input {
+        display: inline-block;
+        width: 120px;
+        border: 1px solid var(--border-color);
+        margin: 0 0.5rem;
+        padding: 0.2rem 0.5rem;
+        font-size: 1.1rem;
+        text-align: center;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+        font-family: var(--font-family);
+        transition: all 0.2s ease-in-out;
+        color: var(--text-color);
+        position: relative;
+        top: -1px;
+    }
+    .article-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background-color: #fff;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+    }
+    
+    .article-input.correct {
+        font-weight: 600;
+        border-color: var(--success-color);
+        color: var(--success-text-dark);
+        background-color: var(--success-bg-light);
+    }
+    .article-input.incorrect {
+        border-color: var(--error-color);
+        color: var(--error-text-dark);
+        background-color: var(--error-bg-light);
+    }
+
+    .word-bank {
+        margin-bottom: 2rem;
+    }
+
+    .word-bank h3 {
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .word-bank-words {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .word-bank-word {
+        background-color: var(--secondary-color);
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.95rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        align-items: center;
+        margin-top: 1rem;
+    }
+
+    .action-buttons .secondary-btn {
+        background: none;
+        border: 1px solid var(--border-color);
+        color: var(--text-light);
+    }
+    
+    .action-buttons .secondary-btn:hover:not(:disabled) {
+        background: var(--secondary-color);
+        color: var(--text-color);
+    }
+
+    .countdown-timer {
+        font-size: 0.9rem;
+        color: var(--text-light);
+    }
+
+</style>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

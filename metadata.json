@@ -1,0 +1,6 @@
+{
+  "description": "A fill-in-the-blank language learning app where users can input any language and topic to generate vocabulary and writing exercises. It features AI-generated header images for each lesson and text-to-speech to hear the activities read aloud.",
+  "requestFramePermissions": [],
+  "name": "LingoBlanks",
+  "prompt": ""
+}
