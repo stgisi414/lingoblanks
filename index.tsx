@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { GoogleGenAI, Type } from "@google/genai";
@@ -65,6 +64,15 @@ function pcmToWav(pcmData: Uint8Array, sampleRate: number, numChannels: number, 
     return wavBytes.buffer;
 }
 
+// --- Utility function to shuffle an array (Fisher-Yates algorithm) ---
+function shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
 
 // --- App Component ---
 const App = () => {
@@ -79,6 +87,8 @@ const App = () => {
     const [userAnswers, setUserAnswers] = useState<string[]>([]);
     const [isCorrect, setIsCorrect] = useState<boolean[]>([]);
     const [showResults, setShowResults] = useState(false);
+    
+    const [shuffledWords, setShuffledWords] = useState<string[]>([]);
 
     const [isAudioLoading, setIsAudioLoading] = useState(false);
     const [isAudioPlaying, setIsAudioPlaying] = useState(false);
@@ -152,6 +162,7 @@ const App = () => {
             setLesson(lessonData);
             setUserAnswers(new Array(lessonData.targetWords.length).fill(''));
             setIsCorrect([]);
+            setShuffledWords(shuffleArray(lessonData.targetWords));
 
             // 2. Generate Header Image
             const imagePrompt = `A vibrant, minimalist, educational illustration for a language lesson titled "${lessonData.title}".`;
@@ -357,7 +368,7 @@ const App = () => {
                                 <div className="word-bank">
                                     <h3>Word Bank</h3>
                                     <div className="word-bank-words">
-                                        {lesson.targetWords.map(word => <span key={word} className="word-bank-word">{word}</span>)}
+                                        {shuffledWords.map(word => <span key={word} className="word-bank-word">{word}</span>)}
                                     </div>
                                 </div>
                             )}
