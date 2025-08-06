@@ -83,6 +83,9 @@ const App = () => {
     const [topic, setTopic] = useState(() => {
         return localStorage.getItem('lastTopic') || 'ordering food at a restaurant';
     });
+    const [difficulty, setDifficulty] = useState(() => {
+        return localStorage.getItem('lastDifficulty') || 'normal';
+     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -132,12 +135,24 @@ const App = () => {
         localStorage.setItem('lastLanguage', language);
     }, [language]);
     
+    // Save topic to local storage
     useEffect(() => {
         localStorage.setItem('lastTopic', topic);
     }, [topic]);
 
+    // Save difficulty to local storage
+    useEffect(() => {
+        localStorage.setItem('lastDifficulty', difficulty);
+    }, [difficulty]);
+
     // --- Gemini API Calls ---
     const generateLesson = async (currentTopic: string) => {
+        const difficultyMap: Record<string, string> = {
+            'easy': 'Use short, simple sentences with common vocabulary and basic grammar.',
+            'normal': 'Use standard sentences with a mix of common and some less common vocabulary.',
+            'hard': 'Use longer, more complex sentences with advanced vocabulary and grammar.',
+        };
+
         setIsLoading(true);
         setError(null);
         setLesson(null);
@@ -146,7 +161,7 @@ const App = () => {
 
         try {
             // 1. Generate Lesson Content
-            const lessonPrompt = `Create a short, simple language lesson for a beginner learning ${language}. The topic is "${currentTopic}". Provide a title, the IETF language code for ${language}, a short article (3-4 sentences) with exactly 5 words replaced by "{{word}}" for a fill-in-the-blank exercise, a JSON array of those 5 exact string words for the "targetWords" field (the words should be the actual words, not placeholders), and a suggestion for a follow-up lesson topic.`;
+            const lessonPrompt = `Create a language lesson for a beginner learning ${language} on the topic of "${currentTopic}". The difficulty is ${difficulty}. ${difficultyMap[difficulty]} Provide a title, the IETF language code for ${language}, a short article (3-4 sentences) with exactly 5 words replaced by "{{word}}" for a fill-in-the-blank exercise, a JSON array of those 5 exact string words for the "targetWords" field (the words should be the actual words, not placeholders), and a suggestion for a follow-up lesson topic.`;
             
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
@@ -356,6 +371,38 @@ const App = () => {
                             disabled={isLoading}
                         />
                     </div>
+                    <div className="control-group">
+                        <label>Difficulty</label>
+                        <div style={{display: 'flex', gap: '1rem'}}>
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="easy"
+                                    checked={difficulty === 'easy'}
+                                    onChange={(e) => setDifficulty(e.target.value)}
+                                    disabled={isLoading}
+                                />
+                                Easy
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="normal"
+                                    checked={difficulty === 'normal'}
+                                    onChange={(e) => setDifficulty(e.target.value)}
+                                    disabled={isLoading}
+                                />
+                                Normal
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="hard"
+                                    checked={difficulty === 'hard'}
+                                    onChange={(e) => setDifficulty(e.target.value)}
+                                    disabled={isLoading}/>Hard</label>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="main-cta">
@@ -390,7 +437,14 @@ const App = () => {
                                 <div className="word-bank">
                                     <h3>Word Bank</h3>
                                     <div className="word-bank-words">
-                                        {shuffledWords.map(word => <span key={word} className="word-bank-word">{word}</span>)}
+                                        {shuffledWords.map(word => (
+                                           <button
+                                               key={word}
+                                               className="word-bank-word"
+                                               onClick={() => handleListen(word)}
+                                               disabled={isAudioLoading || isAudioPlaying}
+                                           >{word}</button>
+                                        ))}    
                                     </div>
                                 </div>
                             )}
