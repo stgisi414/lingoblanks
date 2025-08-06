@@ -106,6 +106,14 @@ const App = () => {
     const audioContextRef = useRef<AudioContext | null>(null);
     const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
+    const [translations, setTranslations] = useState<Record<string, string>>({});
+    const [isTranslating, setIsTranslating] = useState(false);
+    const [translationError, setTranslationError] = useState<string | null>(null);
+    const [showLanguageModal, setShowLanguageModal] = useState(false);
+    const [wordToTranslate, setWordToTranslate] = useState<string | null>(null);
+    const [targetTranslationLanguage, setTargetTranslationLanguage] = useState('');
+
+
     // --- Effects ---
     // Cleanup audio context on unmount
     useEffect(() => {
@@ -144,6 +152,33 @@ const App = () => {
     useEffect(() => {
         localStorage.setItem('lastDifficulty', difficulty);
     }, [difficulty]);
+
+    // Handle translations
+    const getTranslations = async (words: string[], sourceLanguage: string) => {
+        if (sourceLanguage.startsWith('en')) {
+            setTranslations({});
+            return;
+        }
+        setIsTranslating(true);
+        setTranslationError(null);
+        try {
+            const translationPrompt = `Translate the following words from ${sourceLanguage} to English in a JSON object format where the keys are the original words and the values are the English translations:\n${JSON.stringify(words)}`;
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: translationPrompt,
+                config: {
+                    responseMimeType: "application/json",
+                }
+            });
+            const translatedWords = JSON.parse(response.text);
+            setTranslations(translatedWords);
+        } catch (err: any) {
+            console.error("Failed to get translations:", err);
+            setTranslationError(`Failed to get translations: ${err.message}`);
+        } finally {
+            setIsTranslating(false);
+        }
+    };
 
     // --- Gemini API Calls ---
     const generateLesson = async (currentTopic: string) => {
@@ -192,6 +227,10 @@ const App = () => {
             setIsCorrect([]);
             setShuffledWords(shuffleArray(lessonData.targetWords));
 
+            if (!lessonData.languageCode.startsWith('en')) {
+                getTranslations(lessonData.targetWords, lessonData.languageCode);
+            }
+
             // 2. Generate Header Image
             const imagePrompt = `A vibrant, minimalist, educational illustration for a language lesson titled "${lessonData.title}", without any text, labels, or written language.`;
             const imageResponse = await ai.models.generateImages({
@@ -214,6 +253,38 @@ const App = () => {
         } finally {
             setIsLoading(false);
             setNextTopicCooldown(5); // Add a 5-second cooldown
+        }
+    };
+
+    const handleWordBankHover = (word: string) => {
+        handleListen(word);
+        if (lesson?.languageCode.startsWith('en')) {
+            setWordToTranslate(word);
+            setShowLanguageModal(true);
+        }
+    };
+
+    const handleTranslateEnglishWord = async () => {
+        if (!wordToTranslate || !targetTranslationLanguage) return;
+
+        setIsTranslating(true);
+        setTranslationError(null);
+        try {
+            const translationPrompt = `Translate the following word from English to ${targetTranslationLanguage}: "${wordToTranslate}"`;
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: translationPrompt,
+            });
+            const translatedWord = response.text;
+            setTranslations(prev => ({ ...prev, [wordToTranslate]: translatedWord }));
+            setShowLanguageModal(false);
+            setWordToTranslate(null);
+            setTargetTranslationLanguage('');
+        } catch (err: any) {
+            console.error("Failed to translate word:", err);
+            setTranslationError(`Failed to translate word: ${err.message}`);
+        } finally {
+            setIsTranslating(false);
         }
     };
 
@@ -438,10 +509,34 @@ const App = () => {
                                            <button
                                                key={word}
                                                className="word-bank-word"
+                                               onHover={() => handleWordBankHover(word)}
                                                onClick={() => handleListen(word)}
                                                disabled={isAudioLoading || isAudioPlaying}
                                            >{word}</button>
                                         ))}    
+                                    </div>
+                                </div>
+                            )}
+
+                            {showLanguageModal && (
+                                <div className="modal-overlay">
+                                    <div className="modal">
+                                        <h3>Translate "{wordToTranslate}"</h3>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter language to translate to"
+                                            value={targetTranslationLanguage}
+                                            onChange={(e) => setTargetTranslationLanguage(e.target.value)}
+                                        />
+                                        <div className="modal-actions">
+                                            <button onClick={handleTranslateEnglishWord} disabled={isTranslating || !targetTranslationLanguage}>
+                                                {isTranslating ? 'Translating...' : 'Translate'}
+                                            </button>
+                                            <button onClick={() => setShowLanguageModal(false)} className="secondary-btn">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                        {translationError && <p className="error-message">{translationError}</p>}
                                     </div>
                                 </div>
                             )}
