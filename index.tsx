@@ -256,14 +256,6 @@ const App = () => {
         }
     };
 
-    const handleWordBankHover = (word: string) => {
-        handleListen(word);
-        if (lesson?.languageCode.startsWith('en')) {
-            setWordToTranslate(word);
-            setShowLanguageModal(true);
-        }
-    };
-
     const handleTranslateEnglishWord = async () => {
         if (!wordToTranslate || !targetTranslationLanguage) return;
 
@@ -509,7 +501,7 @@ const App = () => {
                                            <button
                                                key={word}
                                                className="word-bank-word"
-                                               onMouseEnter={() => handleWordBankHover(word)}
+                                               onMouseEnter={() => handleTranslateEnglishWord(word)}
                                                onClick={() => handleListen(word)}
                                                disabled={isAudioLoading || isAudioPlaying}
                                            >{word}</button>
