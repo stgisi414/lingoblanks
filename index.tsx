@@ -77,8 +77,12 @@ function shuffleArray<T>(array: T[]): T[] {
 // --- App Component ---
 const App = () => {
     // State management
-    const [language, setLanguage] = useState('Spanish');
-    const [topic, setTopic] = useState('ordering food at a restaurant');
+    const [language, setLanguage] = useState(() => {
+        return localStorage.getItem('lastLanguage') || 'Spanish';
+    });
+    const [topic, setTopic] = useState(() => {
+        return localStorage.getItem('lastTopic') || 'ordering food at a restaurant';
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -122,6 +126,15 @@ const App = () => {
             return () => clearTimeout(timer);
         }
     }, [nextTopicCooldown]);
+    
+    // Save language and topic to local storage whenever they change
+    useEffect(() => {
+        localStorage.setItem('lastLanguage', language);
+    }, [language]);
+    
+    useEffect(() => {
+        localStorage.setItem('lastTopic', topic);
+    }, [topic]);
 
     // --- Gemini API Calls ---
     const generateLesson = async (currentTopic: string) => {
@@ -308,22 +321,18 @@ const App = () => {
     return (
         <div className="container">
             <header>
-                <h1>LingoBlanks</h1>
-            </header>
-            <main>
-                <div style={{ padding: '2rem', display: 'flex', justifyContent: 'center' }}>
-                    <img
+                <h1><img
                         src="/logo.png"
                         alt="LingoBlanks Logo"
                         style={{
-                            width: '360px',
-                            height: '360px',
-                            borderRadius: '50%',
-                            border: '4px solid white',
-                            backgroundColor: '#4f46e5'
+                            width: '75px',
+                            height: '75px',
+                            verticalAlign: 'middle',
+                            marginTop: '-7.5px'
                         }}
-                    />
-                </div>
+                    /> LingoBlanks</h1>
+            </header>
+            <main>
                 <div className="controls">
                     <div className="control-group">
                         <label htmlFor="language-input">Language</label>
