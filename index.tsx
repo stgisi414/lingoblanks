@@ -10,20 +10,11 @@ interface Lesson {
   languageCode: string; // e.g., 'es-ES' for Spanish
   article: string; // The article with placeholders like '{{word}}'
   targetWords: string[];
+  targetWordReadings: string[]; // To store phonetic readings
   nextTopicSuggestion: string;
 }
 
 // --- WAV Utility ---
-/**
- * Creates a WAV file buffer from raw PCM data. The Gemini TTS API returns raw
- * 16-bit PCM audio at a 24000Hz sample rate, which needs a proper WAV header
- * for the browser's Web Audio API to decode.
- * @param {Uint8Array} pcmData The raw PCM data.
- * @param {number} sampleRate The sample rate (e.g., 24000).
- * @param {number} numChannels The number of channels (e.g., 1).
- * @param {number} bitsPerSample The number of bits per sample (e.g., 16).
- * @returns {ArrayBuffer} The complete WAV file as an ArrayBuffer.
- */
 function pcmToWav(pcmData: Uint8Array, sampleRate: number, numChannels: number, bitsPerSample: number): ArrayBuffer {
     const header = new ArrayBuffer(44);
     const view = new DataView(header);
@@ -78,10 +69,10 @@ function shuffleArray<T>(array: T[]): T[] {
 const App = () => {
     // State management
     const [language, setLanguage] = useState(() => {
-        return localStorage.getItem('lastLanguage') || 'Spanish';
+        return localStorage.getItem('lastLanguage') || 'Japanese';
     });
     const [topic, setTopic] = useState(() => {
-        return localStorage.getItem('lastTopic') || 'ordering food at a restaurant';
+        return localStorage.getItem('lastTopic') || 'daily life';
     });
     const [difficulty, setDifficulty] = useState(() => {
         return localStorage.getItem('lastDifficulty') || 'normal';
@@ -113,32 +104,6 @@ const App = () => {
     const [wordToTranslate, setWordToTranslate] = useState<string | null>(null);
     const [targetTranslationLanguage, setTargetTranslationLanguage] = useState('');
 
-    const getLanguageCodeFromAI = async (userInputLanguage: string): Promise<string> => {
-        const supportedCodes = [
-            'ar-EG', 'de-DE', 'en-US', 'es-US', 'fr-FR', 'hi-IN', 'id-ID',
-            'it-IT', 'ja-JP', 'ko-KR', 'pt-BR', 'ru-RU', 'nl-NL', 'pl-PL',
-            'th-TH', 'tr-TR', 'vi-VN', 'ro-RO', 'uk-UA', 'bn-BD', 'en-IN',
-            'mr-IN', 'ta-IN', 'te-IN'
-        ];
-
-        const prompt = `From the user input "${userInputLanguage}", identify the correct BCP-47 code from this list: ${JSON.stringify(supportedCodes)}. Your response must be ONLY the BCP-47 code from the list. If you cannot determine a matching code, respond with "en-US".`;
-
-        try {
-            const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash",
-                contents: prompt,
-            });
-            const potentialCode = response.text.trim();
-            // Validate that the AI returned a valid code from our list
-            if (supportedCodes.includes(potentialCode)) {
-                return potentialCode;
-            }
-            return 'en-US'; // Default if the AI returns an unsupported code
-        } catch (error) {
-            console.error("Error determining language code from AI:", error);
-            return 'en-US'; // Default on API error
-        }
-    };
 
     // --- Effects ---
     // Cleanup audio context on unmount
@@ -164,17 +129,15 @@ const App = () => {
         }
     }, [nextTopicCooldown]);
     
-    // Save language and topic to local storage whenever they change
+    // Save language, topic, and difficulty to local storage whenever they change
     useEffect(() => {
         localStorage.setItem('lastLanguage', language);
     }, [language]);
     
-    // Save topic to local storage
     useEffect(() => {
         localStorage.setItem('lastTopic', topic);
     }, [topic]);
 
-    // Save difficulty to local storage
     useEffect(() => {
         localStorage.setItem('lastDifficulty', difficulty);
     }, [difficulty]);
@@ -222,7 +185,7 @@ const App = () => {
 
         try {
             // 1. Generate Lesson Content
-            const lessonPrompt = `Create a language lesson for a beginner learning ${language} on the topic of "${currentTopic}". The difficulty is ${difficulty}. ${difficultyMap[difficulty]} Provide a title, the IETF language code for ${language}, a short article (3-4 sentences) with exactly 5 words replaced by "{{word}}" for a fill-in-the-blank exercise, a JSON array of those 5 exact string words for the "targetWords" field (the words should be the actual words, not placeholders), and a suggestion for a follow-up lesson topic.`;
+            const lessonPrompt = `Create a language lesson for a beginner learning ${language} on the topic of "${currentTopic}". The difficulty is ${difficulty}. ${difficultyMap[difficulty]} Provide a title, the IETF language code for ${language}, a short article (3-4 sentences) with exactly 5 words replaced by "{{word}}" for a fill-in-the-blank exercise, a JSON array of those 5 exact string words for the "targetWords" field, a JSON array of the phonetic readings for each of those 5 words for the "targetWordReadings" field, and a suggestion for a follow-up lesson topic.`;
             
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
@@ -236,6 +199,7 @@ const App = () => {
                             languageCode: { type: Type.STRING },
                             article: { type: Type.STRING },
                             targetWords: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            targetWordReadings: { type: Type.ARRAY, items: { type: Type.STRING } },
                             nextTopicSuggestion: { type: Type.STRING },
                         }
                     }
@@ -247,11 +211,6 @@ const App = () => {
             if (!lessonData.targetWords || lessonData.targetWords.length === 0) {
               throw new Error("API returned invalid lesson data (missing target words).");
             }
-
-            // Get the validated TTS code based on the user's input language.
-            const ttsLanguageCode = await getLanguageCodeFromAI(language);
-            // Overwrite the language code from the lesson plan with our validated one.
-            lessonData.languageCode = ttsLanguageCode;
             
             setLesson(lessonData);
             setUserAnswers(new Array(lessonData.targetWords.length).fill(''));
@@ -288,6 +247,7 @@ const App = () => {
     };
 
     const handleWordBankHover = (word: string) => {
+        handleListen(word); // Play audio on hover
         if (lesson?.languageCode.startsWith('en')) {
             setWordToTranslate(word);
             setShowLanguageModal(true);
@@ -329,9 +289,18 @@ const App = () => {
                 audioSourceRef.current.stop();
             }
 
+            let ttsPrompt = textToListen;
+            const wordIndex = lesson.targetWords.indexOf(textToListen);
+
+            // If the word is from the word bank and we have a reading for it, create a more explicit prompt.
+            if (wordIndex !== -1 && lesson.targetWordReadings && lesson.targetWordReadings[wordIndex]) {
+                const reading = lesson.targetWordReadings[wordIndex];
+                ttsPrompt = `Pronounce the ${language} word '${textToListen}', which is read as '${reading}'.`;
+            }
+
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash-preview-tts",
-                contents: [{ parts: [{ text: textToListen }] }],
+                contents: [{ parts: [{ text: ttsPrompt }] }],
                 config: {
                     responseModalities: ['AUDIO'],
                     speechConfig: {
@@ -401,8 +370,6 @@ const App = () => {
     
     const renderArticle = () => {
         if (!lesson) return null;
-        // Regex to split by {{...}} placeholders, keeping the delimiters.
-        // This robustly handles cases where the API returns {{word}} or {{actual word}}.
         const parts = lesson.article.split(/(\{\{[^}]+\}\}|\{\{word\}\})/g);
         let inputIndex = 0;
 
@@ -410,8 +377,7 @@ const App = () => {
             <p className="article">
                 {parts.map((part, i) => {
                     if (part.startsWith('{{') && part.endsWith('}}')) {
-                        const currentIndex = inputIndex;
-                        inputIndex++;
+                        const currentIndex = inputIndex++;
                         return (
                             <input
                                 key={i}
@@ -424,7 +390,6 @@ const App = () => {
                             />
                         );
                     }
-                    // Render the text part if it's not an empty string
                     return part ? <React.Fragment key={i}>{part}</React.Fragment> : null;
                 })}
             </p>
@@ -537,13 +502,13 @@ const App = () => {
                                     <div className="word-bank-words">
                                         {shuffledWords.map(word => (
                                            <button
-                                                key={word}
-                                                className="word-bank-word"
-                                                title={translations[word] || ''}
-                                                onMouseEnter={() => handleWordBankHover(word)}
-                                                onClick={() => handleListen(word)}
-                                                disabled={isAudioLoading || isAudioPlaying}
-                                            >{word}</button>
+                                               key={word}
+                                               className="word-bank-word"
+                                               title={translations[word] || ''}
+                                               onMouseEnter={() => handleWordBankHover(word)}
+                                               onClick={() => handleListen(word)}
+                                               disabled={isAudioLoading || isAudioPlaying}
+                                           >{word}</button>
                                         ))}    
                                     </div>
                                 </div>
