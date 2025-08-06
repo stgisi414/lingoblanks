@@ -509,7 +509,7 @@ const App = () => {
                                            <button
                                                key={word}
                                                className="word-bank-word"
-                                               onHover={() => handleWordBankHover(word)}
+                                               onMouseEnter={() => handleWordBankHover(word)}
                                                onClick={() => handleListen(word)}
                                                disabled={isAudioLoading || isAudioPlaying}
                                            >{word}</button>
