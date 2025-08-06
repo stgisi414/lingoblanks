@@ -311,6 +311,19 @@ const App = () => {
                 <h1>LingoBlanks</h1>
             </header>
             <main>
+                <div style={{ padding: '2rem', display: 'flex', justifyContent: 'center' }}>
+                    <img
+                        src="/logo.png"
+                        alt="LingoBlanks Logo"
+                        style={{
+                            width: '360px',
+                            height: '360px',
+                            borderRadius: '50%',
+                            border: '4px solid white',
+                            backgroundColor: '#4f46e5'
+                        }}
+                    />
+                </div>
                 <div className="controls">
                     <div className="control-group">
                         <label htmlFor="language-input">Language</label>
